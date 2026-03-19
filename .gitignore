@@ -3,9 +3,6 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-movies.csv
-ratings.csv
-
 # C extensions
 *.so
 
