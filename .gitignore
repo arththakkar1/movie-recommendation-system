@@ -6,8 +6,8 @@ __pycache__/
 # C extensions
 *.so
 
-movie_list.pkl
-similarity.pkl
+Explaination/movie_list.pkl
+Explaination/similarity.pkl
 
 # Distribution / packaging
 .Python
