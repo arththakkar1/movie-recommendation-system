@@ -1,137 +1,150 @@
 # Movie Recommendation System
 
-A content-based and collaborative filtering movie recommendation system built with Python, scikit-learn, and Jupyter widgets.
+A content-based movie recommendation system built using the **TMDB dataset**, with TF-IDF vectorization, fuzzy title search, hybrid scoring, MMR diversity re-ranking, and evaluation metrics.
+
+---
+
+## Pipeline
+
+| Step | Description                                                      |
+| ---- | ---------------------------------------------------------------- |
+| 1    | Load & merge `movies.csv`, `credits.csv`, `poster.csv`           |
+| 2    | Safe feature extraction (genres, keywords, top-3 cast, director) |
+| 3    | NLTK stemming on combined tags                                   |
+| 4    | TF-IDF → L2-normalised embeddings → Cosine Similarity            |
+| 5    | Hybrid scoring with tunable weights                              |
+| 6    | Fuzzy title matching                                             |
+| 7    | MMR re-ranking for diversity                                     |
+| 8    | NDCG@K + Precision@K + Catalog Coverage evaluation               |
+| 9    | Sparse similarity storage                                        |
+
+---
 
 ## Features
 
-- **Content-Based Search**: Find movies similar to a given title using TF-IDF vectorization and cosine similarity
-- **Collaborative Filtering**: Discover recommendations based on users with similar tastes
-- **Interactive Interface**: Real-time search widget for exploring the movie database
+- **Safe Parsing** — `ast.literal_eval` wrapped in a `safe_parse()` fallback; malformed rows silently return `[]` instead of crashing
+- **NLTK Stemming** — `PorterStemmer` collapses word variants (`running` → `run`) for a smaller TF-IDF vocabulary
+- **TF-IDF Vectorization** — 10,000 features, English stop words filtered
+- **Hybrid Scoring** — tunable `w_sim`, `w_vote`, `w_pop` weights blend content similarity with vote average and popularity
+- **Fuzzy Title Search** — `rapidfuzz` resolves typos/partial queries (e.g. `'avtar'` → `Avatar`)
+- **MMR Re-ranking** — Maximal Marginal Relevance balances relevance vs. diversity in results
+- **Evaluation Metrics** — Precision@K, NDCG@K, and catalog coverage
+- **Sparse Storage** — Top-50 neighbours saved as a `.npz` sparse matrix (~3 MB vs. ~180 MB dense)
 
-## Technologies Used
-
-- Python
-- pandas & NumPy
-- scikit-learn (TF-IDF, cosine similarity)
-- ipywidgets (interactive UI)
-- Regular expressions (text preprocessing)
+---
 
 ## Dataset
 
-This project uses the **MovieLens 25M Dataset** from GroupLens Research.
+Uses the **TMDB 5000 Movie Dataset**.
 
-### Dataset Overview
+| File          | Description                                                                  |
+| ------------- | ---------------------------------------------------------------------------- |
+| `movies.csv`  | Movie metadata (title, genres, keywords, overview, vote average, popularity) |
+| `credits.csv` | Cast and crew information                                                    |
+| `poster.csv`  | Poster URLs from TMDB                                                        |
 
-- **25,000,095** ratings across **62,423** movies
-- **162,541** users
-- **Date Range**: January 09, 1995 to November 21, 2019
-- Ratings on a 5-star scale with half-star increments
+---
 
-### Files Used
+## Technologies Used
 
-- `movies.csv` - Contains movie titles, IDs, and genres
-- `ratings.csv` - Contains user ratings for movies
+- **Python** — core language
+- **pandas & NumPy** — data manipulation
+- **scikit-learn** — `TfidfVectorizer`, `cosine_similarity`, `normalize`
+- **NLTK** — `PorterStemmer` for stemming
+- **rapidfuzz** — fuzzy string matching
+- **SciPy** — sparse matrix storage (`.npz`)
+- **Jupyter Notebook** — interactive exploration
 
-For complete dataset documentation, see [data.md](data.md)
-
-### Citation
-
-```
-F. Maxwell Harper and Joseph A. Konstan. 2015.
-The MovieLens Datasets: History and Context.
-ACM Transactions on Interactive Intelligent Systems (TiiS) 5, 4: 19:1–19:19.
-https://doi.org/10.1145/2827872
-```
-
-## How It Works
-
-### 1. Content-Based Filtering
-
-- Cleans movie titles by removing special characters
-- Converts titles to TF-IDF vectors (considering unigrams and bigrams)
-- Calculates cosine similarity between query and all movies
-- Returns top 5 most similar movies
-
-### 2. Collaborative Filtering
-
-- Identifies users who rated a movie highly (>4 stars)
-- Finds other movies these users enjoyed
-- Calculates a similarity score based on relative popularity
-- Returns top 10 recommendations with hidden gems prioritized
+---
 
 ## Installation
 
 ```bash
-pip install pandas numpy scikit-learn ipywidgets
+pip install pandas numpy scikit-learn nltk rapidfuzz scipy
 ```
 
-## Dataset Setup
+```python
+import nltk
+nltk.download('punkt')
+```
 
-1. Download the MovieLens 25M dataset from [GroupLens](http://grouplens.org/datasets/movielens/25m/)
-2. Extract `movies.csv` and `ratings.csv` to the project directory
-3. The CSV files are gitignored and will not be committed to the repository
+---
 
 ## Usage
 
-### Search for Similar Movies by Title
+### Basic Recommendation
 
 ```python
-search("The Dark Knight")
+recommend('Avatar')
 ```
 
-### Get Recommendations Based on Movie ID
+### Fuzzy Match (Typo-Tolerant)
 
 ```python
-find_similar_movies(movie_id=1)
+recommend('avtar')           # → matches 'Avatar'
+recommend('dark night')      # → matches 'The Dark Knight Rises'
 ```
 
-### Interactive Search Widget
+### Custom Weights
 
-Run the widget cell in Jupyter Notebook to enable real-time search as you type.
+```python
+recommend('Interstellar', w_sim=0.5, w_vote=0.3, w_pop=0.2)
+```
+
+### Evaluation
+
+```python
+precision_at_k('Inception', k=5)
+ndcg_at_k('Inception', k=5)
+catalog_coverage(['Avatar', 'Inception', 'Interstellar'], k=5)
+```
+
+---
+
+## Key Algorithms
+
+### TF-IDF (Term Frequency–Inverse Document Frequency)
+
+Weighs rare, distinctive words higher. Applied on stemmed tags (overview + genres + keywords + cast + director).
+
+### Cosine Similarity
+
+Dot product of L2-normalised TF-IDF vectors. Ranges from 0 (dissimilar) to 1 (identical).
+
+### Hybrid Scoring
+
+```
+score = sim × w_sim + vote_norm × w_vote + pop_norm × w_pop
+```
+
+Default weights: `w_sim=0.70, w_vote=0.20, w_pop=0.10`
+
+### Maximal Marginal Relevance (MMR)
+
+Re-ranks candidates by balancing relevance to the query against inter-result diversity:
+
+```
+MMR = λ · relevance − (1 − λ) · max_similarity_to_selected
+```
+
+### NDCG@K (Normalised Discounted Cumulative Gain)
+
+Penalises relevant items ranked lower in the list; genre overlap used as the relevance signal.
+
+---
 
 ## Project Structure
 
 ```
-├── movies.csv              # Movie database (gitignored)
-├── ratings.csv             # User ratings (gitignored)
-├── notebook.ipynb          # Main Jupyter notebook
-├── .gitignore              # Git ignore file
-├── DATA.md                 # Dataset documentation
-└── README.md               # Project documentation
+├── Explaination/
+│   ├── app.ipynb           # Main notebook (full pipeline)
+│   ├── movie_list.pkl      # Pickled movie DataFrame
+│   ├── similarity_sparse.npz  # Sparse top-50 neighbour matrix
+│   └── Data/
+│       ├── movies.csv
+│       ├── credits.csv
+│       └── poster.csv
+├── frontend/               # Next.js frontend (WIP)
+├── readme.md
+└── .gitignore
 ```
-
-## Key Algorithms
-
-**TF-IDF (Term Frequency-Inverse Document Frequency)**
-
-- Weighs important (rare) words higher than common words
-- Creates numerical representations of movie titles
-
-**Cosine Similarity**
-
-- Measures similarity between two vectors
-- Ranges from 0 (dissimilar) to 1 (identical)
-
-**Collaborative Filtering Score**
-
-- Finds movies disproportionately popular among similar users
-- Formula: `score = similar_user_popularity / all_user_popularity`
-
-## License
-
-This project is open source and available for educational purposes.
-
-### Dataset License
-
-The MovieLens dataset is provided by GroupLens Research. Usage must comply with their license terms:
-
-- Must cite the dataset in publications
-- Cannot redistribute without permission
-- Cannot use for commercial purposes without permission
-
-See [data.md](data.md) for complete license terms.
-
-## Acknowledgments
-
-- **GroupLens Research** at the University of Minnesota for providing the MovieLens dataset
-- **MovieLens** recommendation service (http://movielens.org)
