@@ -3,41 +3,65 @@
 import { useState, useRef, useEffect } from "react";
 import MovieCard from "./components/MovieCard";
 import WeightSliders from "./components/WeightSliders";
-import { resolveTitle, getRecommendations, SEED_TITLES, Movie } from "./data/mockMovies";
+import {
+  resolveTitle,
+  getRecommendations,
+  getSeedTitles,
+  Movie,
+} from "./data/api";
 
-const PLACEHOLDER_TITLES = ["Avatar", "Inception", "Interstellar", "The Dark Knight", "Toy Story"];
+const PLACEHOLDER_TITLES = [
+  "Avatar",
+  "Inception",
+  "Interstellar",
+  "The Dark Knight",
+  "Toy Story",
+];
 
 export default function Home() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Movie[]>([]);
   const [matched, setMatched] = useState<string | null>(null);
+  const [matchedId, setMatchedId] = useState<number | null>(null);
   const [fuzzyBanner, setFuzzyBanner] = useState<string | null>(null);
   const [noMatch, setNoMatch] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [wSim, setWSim] = useState(0.70);
-  const [wVote, setWVote] = useState(0.20);
-  const [wPop, setWPop] = useState(0.10);
+  const [wSim, setWSim] = useState(0.7);
+  const [wVote, setWVote] = useState(0.2);
+  const [wPop, setWPop] = useState(0.1);
   const [placeholder, setPlaceholder] = useState(PLACEHOLDER_TITLES[0]);
+  const [seedTitles, setSeedTitles] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load seed titles from backend on mount
+  useEffect(() => {
+    getSeedTitles().then((titles) => {
+      if (titles.length > 0) {
+        setSeedTitles(titles);
+      }
+    });
+  }, []);
 
   // Rotate placeholder
   useEffect(() => {
     let i = 0;
+    const pool =
+      seedTitles.length > 0 ? seedTitles.slice(0, 8) : PLACEHOLDER_TITLES;
     const id = setInterval(() => {
-      i = (i + 1) % PLACEHOLDER_TITLES.length;
-      setPlaceholder(PLACEHOLDER_TITLES[i]);
+      i = (i + 1) % pool.length;
+      setPlaceholder(pool[i]);
     }, 2500);
     return () => clearInterval(id);
-  }, []);
+  }, [seedTitles]);
 
-  // Re-sort when weights change
+  // Re-fetch recommendations when weights change
   useEffect(() => {
-    if (matched) {
-      setResults(getRecommendations(matched, wSim, wVote, wPop));
+    if (matchedId) {
+      getRecommendations(matchedId, wSim, wVote, wPop).then(setResults);
     }
-  }, [wSim, wVote, wPop, matched]);
+  }, [wSim, wVote, wPop, matchedId]);
 
-  function search(q = query) {
+  async function search(q = query) {
     const trimmed = q.trim();
     if (!trimmed) return;
 
@@ -45,21 +69,44 @@ export default function Home() {
     setNoMatch(false);
     setFuzzyBanner(null);
 
-    // Simulate a tiny async "model" delay
-    setTimeout(() => {
-      const { matched: m, isExact } = resolveTitle(trimmed);
-      if (!m) {
+    try {
+      const searchResult = await resolveTitle(trimmed);
+
+      if (!searchResult.matched || !searchResult.movie_id) {
         setMatched(null);
+        setMatchedId(null);
         setResults([]);
         setNoMatch(true);
       } else {
-        setMatched(m);
-        setResults(getRecommendations(m, wSim, wVote, wPop));
-        if (!isExact) setFuzzyBanner(`Matched "${trimmed}" → "${m}"`);
+        setMatched(searchResult.matched);
+        setMatchedId(searchResult.movie_id);
+
+        const recs = await getRecommendations(
+          searchResult.movie_id,
+          wSim,
+          wVote,
+          wPop
+        );
+        setResults(recs);
+
+        if (!searchResult.is_exact) {
+          setFuzzyBanner(
+            `Matched "${trimmed}" → "${searchResult.matched}"`
+          );
+        }
       }
+    } catch {
+      setMatched(null);
+      setMatchedId(null);
+      setResults([]);
+      setNoMatch(true);
+    } finally {
       setLoading(false);
-    }, 420);
+    }
   }
+
+  const chipTitles =
+    seedTitles.length > 0 ? seedTitles.slice(0, 6) : PLACEHOLDER_TITLES;
 
   return (
     <main className="min-h-screen bg-[#0b0b10] text-white flex flex-col">
@@ -72,16 +119,22 @@ export default function Home() {
           </h1>
         </div>
         <p className="text-white/40 text-sm max-w-md">
-          Content-based recommendations · TF-IDF + Cosine Similarity · Hybrid Scoring · MMR Diversity
+          Content-based recommendations · TF-IDF + Cosine Similarity · Hybrid
+          Scoring · MMR Diversity
         </p>
 
         {/* Pipeline pills */}
         <div className="flex flex-wrap justify-center gap-2 mt-5">
-          {["TF-IDF", "Stemming", "Fuzzy Search", "Hybrid Score", "MMR"].map((t) => (
-            <span key={t} className="text-[11px] font-mono px-3 py-1 rounded-full border border-white/10 bg-white/5 text-white/50">
-              {t}
-            </span>
-          ))}
+          {["TF-IDF", "Stemming", "Fuzzy Search", "Hybrid Score", "MMR"].map(
+            (t) => (
+              <span
+                key={t}
+                className="text-[11px] font-mono px-3 py-1 rounded-full border border-white/10 bg-white/5 text-white/50"
+              >
+                {t}
+              </span>
+            )
+          )}
         </div>
       </header>
 
@@ -107,10 +160,13 @@ export default function Home() {
 
         {/* Seed chips */}
         <div className="flex flex-wrap justify-center gap-2">
-          {SEED_TITLES.map((t) => (
+          {chipTitles.map((t) => (
             <button
               key={t}
-              onClick={() => { setQuery(t); search(t); }}
+              onClick={() => {
+                setQuery(t);
+                search(t);
+              }}
               className="text-xs px-3 py-1 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
             >
               {t}
@@ -133,8 +189,14 @@ export default function Home() {
       {results.length > 0 && (
         <div className="mx-auto mt-6 w-full max-w-xl px-4">
           <WeightSliders
-            wSim={wSim} wVote={wVote} wPop={wPop}
-            onChange={(s, v, p) => { setWSim(s); setWVote(v); setWPop(p); }}
+            wSim={wSim}
+            wVote={wVote}
+            wPop={wPop}
+            onChange={(s, v, p) => {
+              setWSim(s);
+              setWVote(v);
+              setWPop(p);
+            }}
           />
         </div>
       )}
@@ -145,7 +207,8 @@ export default function Home() {
         {matched && results.length > 0 && (
           <div className="mb-5 flex items-center gap-3">
             <h2 className="text-base font-semibold text-white/80">
-              Recommendations for <span className="text-violet-300">{matched}</span>
+              Recommendations for{" "}
+              <span className="text-violet-300">{matched}</span>
             </h2>
             <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/40 font-mono">
               top {results.length}
@@ -166,8 +229,13 @@ export default function Home() {
         {noMatch && (
           <div className="flex flex-col items-center gap-3 mt-16 text-center">
             <span className="text-4xl">🎭</span>
-            <p className="text-white/40 text-sm">No close match found for <span className="text-white/70 font-mono">"{query}"</span></p>
-            <p className="text-white/25 text-xs">Try one of the seed titles above, or a close variant.</p>
+            <p className="text-white/40 text-sm">
+              No close match found for{" "}
+              <span className="text-white/70 font-mono">&quot;{query}&quot;</span>
+            </p>
+            <p className="text-white/25 text-xs">
+              Try one of the seed titles above, or a close variant.
+            </p>
           </div>
         )}
 
@@ -175,8 +243,19 @@ export default function Home() {
         {!matched && !noMatch && !loading && (
           <div className="flex flex-col items-center gap-3 mt-16 text-center">
             <span className="text-5xl opacity-60">🍿</span>
-            <p className="text-white/30 text-sm">Search for a movie to get recommendations</p>
-            <p className="text-white/20 text-xs">Supports fuzzy matching — try <span className="font-mono text-violet-400/60">"avtar"</span> or <span className="font-mono text-violet-400/60">"dark night"</span></p>
+            <p className="text-white/30 text-sm">
+              Search for a movie to get recommendations
+            </p>
+            <p className="text-white/20 text-xs">
+              Supports fuzzy matching — try{" "}
+              <span className="font-mono text-violet-400/60">
+                &quot;avtar&quot;
+              </span>{" "}
+              or{" "}
+              <span className="font-mono text-violet-400/60">
+                &quot;dark night&quot;
+              </span>
+            </p>
           </div>
         )}
       </section>

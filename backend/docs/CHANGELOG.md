@@ -1,0 +1,46 @@
+# Changelog
+
+All notable changes to the `mrs` project will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/).
+
+---
+
+## Format Guide
+
+- **Added**: New features or functionality.
+- **Changed**: Updates to existing functionality or improvements.
+- **Deprecated**: Features marked for removal in future releases.
+- **Removed**: Features or functionality removed in this release.
+- **Fixed**: Bug fixes or issues resolved.
+- **Security**: Updates related to security improvements.
+
+---
+
+## [Unreleased]
+
+### Added
+- Placeholder for new features.
+
+### Changed
+- Placeholder for updates to existing functionality.
+
+### Deprecated
+- Placeholder for features marked for removal.
+
+### Removed
+- Placeholder for removed features.
+
+### Fixed
+- Placeholder for bug fixes.
+
+### Security
+- Placeholder for security updates.
+
+---
+
+## [1.0.0] - YYYY-MM-DD
+
+### Added
+- Initial release of `mrs`.
+- Basic folder structure for Django project, including `src/`, `apps/`, and `config/` directories.
+- Support for environment-specific settings (`base.py`, `development.py`, `production.py`).
+- Included `media/`, `static/`, and `templates/` directories for file organization.

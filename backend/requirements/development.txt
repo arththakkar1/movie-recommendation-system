@@ -1,0 +1,6 @@
+# requirements that project needs in development environment
+
+-r base.txt
+
+django-structurator==1.2.1
+django-debug-toolbar

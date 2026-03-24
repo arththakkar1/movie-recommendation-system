@@ -1,4 +1,4 @@
-import { Movie } from "../data/mockMovies";
+import { Movie } from "../data/api";
 import Image from "next/image";
 
 const GENRE_COLORS: Record<string, string> = {
@@ -36,14 +36,18 @@ export default function MovieCard({ movie, rank }: { movie: Movie; rank: number 
       </div>
 
       {/* Poster */}
-      <div className="relative aspect-2/3 w-full overflow-hidden bg-zinc-900">
-        <Image
-          src={movie.poster}
-          alt={movie.title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-        />
+      <div className="relative flex items-center justify-center aspect-2/3 w-full overflow-hidden bg-zinc-900">
+        {movie.poster ? (
+          <Image
+            src={movie.poster}
+            alt={movie.title}
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+          />
+        ) : (
+          <span className="text-5xl opacity-20">🎬</span>
+        )}
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>

@@ -1,0 +1,19 @@
+# Common requirements that project needs in every environment 
+
+Django==6.0.3
+django-environ
+argon2-cffi
+bcrypt
+
+
+
+djangorestframework
+django-cors-headers
+django-jazzmin
+
+# ML & Data Processing
+pandas
+numpy
+scikit-learn
+rapidfuzz
+scipy
