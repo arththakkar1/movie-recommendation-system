@@ -44,6 +44,7 @@ The recommendation engine (`backend/src/apps/movies/engine.py`) employs a multi-
 ## Running the Project Locally
 
 **1. Setup the Backend API**
+
 ```bash
 cd backend
 python3 -m venv .venv
@@ -51,14 +52,17 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python src/manage.py runserver
 ```
+
 The API will be available at `http://localhost:8000/api/movies/`.
 
 **2. Setup the Frontend Client**
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
 The Client UI will be available at `http://localhost:3000`.
 
 ---
@@ -73,3 +77,9 @@ movie-recommendation-system/
 ├── README.md              # Project Documentation
 └── .gitignore             # Ignored files
 ```
+
+---
+
+## Contributors
+
+- **Backend Development:** [maulik-0207](https://github.com/maulik-0207) - Developed the Django Python backend and the recommendation engine API.
