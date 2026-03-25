@@ -4,20 +4,6 @@ A full-stack, content-based movie recommendation system built using the **TMDB d
 
 ---
 
-## Screenshots
-
-<div align="center">
-  <img src="screenshots/1.png" alt="CineMatch Homepage" width="800" />
-  <br/><br/>
-  <img src="screenshots/2.png" alt="Search and Navigation" width="800" />
-  <br/><br/>
-  <img src="screenshots/3.png" alt="Recommendations View" width="800" />
-  <br/><br/>
-  <img src="screenshots/4.png" alt="Tunable Machine Learning Weights" width="800" />
-</div>
-
----
-
 ## Architecture Overview
 
 CineMatch is divided into three main components:
@@ -77,6 +63,20 @@ movie-recommendation-system/
 ├── README.md              # Project Documentation
 └── .gitignore             # Ignored files
 ```
+
+---
+
+## Screenshots
+
+<div align="center">
+  <img src="screenshots/1.png" alt="CineMatch Homepage" width="800" />
+  <br/><br/>
+  <img src="screenshots/2.png" alt="Search and Navigation" width="800" />
+  <br/><br/>
+  <img src="screenshots/3.png" alt="Recommendations View" width="800" />
+  <br/><br/>
+  <img src="screenshots/4.png" alt="Tunable Machine Learning Weights" width="800" />
+</div>
 
 ---
 
