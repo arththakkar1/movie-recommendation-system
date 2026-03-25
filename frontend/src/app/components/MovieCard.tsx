@@ -5,7 +5,7 @@ const GENRE_COLORS: Record<string, string> = {
   "Action": "bg-red-500/20 text-red-300 border-red-500/30",
   "Sci-Fi": "bg-blue-500/20 text-blue-300 border-blue-500/30",
   "Science Fiction": "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  "Drama": "bg-purple-500/20 text-purple-300 border-purple-500/30",
+  "Drama": "bg-indigo-400/20 text-indigo-300 border-indigo-400/30",
   "Crime": "bg-orange-500/20 text-orange-300 border-orange-500/30",
   "Thriller": "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
   "Mystery": "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
@@ -46,7 +46,7 @@ export default function MovieCard({ movie, rank }: { movie: Movie; rank: number 
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
           />
         ) : (
-          <span className="text-5xl opacity-20">🎬</span>
+          <div className="w-8 h-8 rounded-full border border-white/20" />
         )}
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

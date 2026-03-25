@@ -28,7 +28,7 @@ export default function WeightSliders({ wSim, wVote, wPop, onChange }: Props) {
   }
 
   const sliders = [
-    { key: "sim" as const, label: "w_sim", desc: "Content similarity", value: wSim, color: "accent-violet-500" },
+    { key: "sim" as const, label: "w_sim", desc: "Content similarity", value: wSim, color: "accent-emerald-500" },
     { key: "vote" as const, label: "w_vote", desc: "Vote average", value: wVote, color: "accent-sky-500" },
     { key: "pop" as const, label: "w_pop", desc: "Popularity", value: wPop, color: "accent-emerald-500" },
   ];
@@ -45,7 +45,7 @@ export default function WeightSliders({ wSim, wVote, wPop, onChange }: Props) {
         <div key={key} className="space-y-1.5">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <code className="text-xs font-mono text-violet-300">{label}</code>
+              <code className="text-xs font-mono text-emerald-300">{label}</code>
               <span className="text-xs text-white/40">{desc}</span>
             </div>
             <span className="text-xs font-mono text-white/70">{value.toFixed(2)}</span>
