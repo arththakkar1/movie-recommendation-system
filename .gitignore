@@ -11,6 +11,9 @@ Explaination/movie_list.pkl
 Explaination/similarity.pkl
 Explaination/similarity_sparse.npz
 
+frontend/AGENTS.md
+frontend/CLAUDE.md
+
 # Distribution / packaging
 .Python
 build/
