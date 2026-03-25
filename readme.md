@@ -1,150 +1,61 @@
-# Movie Recommendation System
+# CineMatch: Movie Recommendation System
 
-A content-based movie recommendation system built using the **TMDB dataset**, with TF-IDF vectorization, fuzzy title search, hybrid scoring, MMR diversity re-ranking, and evaluation metrics.
-
----
-
-## Pipeline
-
-| Step | Description                                                      |
-| ---- | ---------------------------------------------------------------- |
-| 1    | Load & merge `movies.csv`, `credits.csv`, `poster.csv`           |
-| 2    | Safe feature extraction (genres, keywords, top-3 cast, director) |
-| 3    | NLTK stemming on combined tags                                   |
-| 4    | TF-IDF → L2-normalised embeddings → Cosine Similarity            |
-| 5    | Hybrid scoring with tunable weights                              |
-| 6    | Fuzzy title matching                                             |
-| 7    | MMR re-ranking for diversity                                     |
-| 8    | NDCG@K + Precision@K + Catalog Coverage evaluation               |
-| 9    | Sparse similarity storage                                        |
+A full-stack, content-based movie recommendation system built using the **TMDB dataset**. The system features a powerful machine learning recommendation engine alongside a minimal, high-performance web interface.
 
 ---
 
-## Features
+## Architecture Overview
 
-- **Safe Parsing** — `ast.literal_eval` wrapped in a `safe_parse()` fallback; malformed rows silently return `[]` instead of crashing
-- **NLTK Stemming** — `PorterStemmer` collapses word variants (`running` → `run`) for a smaller TF-IDF vocabulary
-- **TF-IDF Vectorization** — 10,000 features, English stop words filtered
-- **Hybrid Scoring** — tunable `w_sim`, `w_vote`, `w_pop` weights blend content similarity with vote average and popularity
-- **Fuzzy Title Search** — `rapidfuzz` resolves typos/partial queries (e.g. `'avtar'` → `Avatar`)
-- **MMR Re-ranking** — Maximal Marginal Relevance balances relevance vs. diversity in results
-- **Evaluation Metrics** — Precision@K, NDCG@K, and catalog coverage
-- **Sparse Storage** — Top-50 neighbours saved as a `.npz` sparse matrix (~3 MB vs. ~180 MB dense)
+CineMatch is divided into three main components:
+
+- **Backend (Django Framework):** Serves the API endpoints for searching and recommendations. Holds a singleton instance of the recommendation engine in-memory for lightning-fast responses.
+- **Frontend (Next.js Application):** A beautiful, minimalist web interface built with React and TailwindCSS. Includes instantaneous data caching and a live semantic search autocomplete.
+- **Explanation (ML Prototypes & Data):** Contains the original Jupyter Notebooks outlining the data parsing, TF-IDF vectorization, sparse matrix analysis, and TMDB datasets.
 
 ---
 
-## Dataset
+## Machine Learning Pipeline
 
-Uses the **TMDB 5000 Movie Dataset**.
+The recommendation engine (`backend/src/apps/movies/engine.py`) employs a multi-stage approach to surface relevant content:
 
-| File          | Description                                                                  |
-| ------------- | ---------------------------------------------------------------------------- |
-| `movies.csv`  | Movie metadata (title, genres, keywords, overview, vote average, popularity) |
-| `credits.csv` | Cast and crew information                                                    |
-| `poster.csv`  | Poster URLs from TMDB                                                        |
-
----
-
-## Technologies Used
-
-- **Python** — core language
-- **pandas & NumPy** — data manipulation
-- **scikit-learn** — `TfidfVectorizer`, `cosine_similarity`, `normalize`
-- **NLTK** — `PorterStemmer` for stemming
-- **rapidfuzz** — fuzzy string matching
-- **SciPy** — sparse matrix storage (`.npz`)
-- **Jupyter Notebook** — interactive exploration
+1. **TF-IDF Vectorization**: Analyzes movie tags (genres, keywords, cast, and director). Weighs rare, distinctive words higher and applies English stop-word filtering.
+2. **Cosine Similarity**: Computes the dot product of L2-normalised TF-IDF vectors to find semantic relationships.
+3. **Fuzzy Title Search**: Uses `rapidfuzz` to resolve typos and partial queries gracefully (e.g. `'avtar'` → `Avatar`).
+4. **Hybrid Scoring**: Dynamically blends the Semantic TF-IDF Similarity Score with the movie's TMDB Vote Average and Popularity metrics using tunable weights (`w_sim`, `w_vote`, `w_pop`).
+5. **MMR Re-ranking**: Employs Maximal Marginal Relevance to balance relevance against catalog diversity, preventing recommendations from being exclusively sequels in the same franchise.
+6. **Autocomplete Suggestions**: Leverages the TF-IDF Vectorizer directly against user queries to offer semantic search suggestions before the user even hits enter.
 
 ---
 
-## Installation
+## Running the Project Locally
 
+**1. Setup the Backend API**
 ```bash
-pip install pandas numpy scikit-learn nltk rapidfuzz scipy
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python src/manage.py runserver
 ```
+The API will be available at `http://localhost:8000/api/movies/`.
 
-```python
-import nltk
-nltk.download('punkt')
+**2. Setup the Frontend Client**
+```bash
+cd frontend
+npm install
+npm run dev
 ```
+The Client UI will be available at `http://localhost:3000`.
 
 ---
 
-## Usage
+## Repository Structure
 
-### Basic Recommendation
-
-```python
-recommend('Avatar')
-```
-
-### Fuzzy Match (Typo-Tolerant)
-
-```python
-recommend('avtar')           # → matches 'Avatar'
-recommend('dark night')      # → matches 'The Dark Knight Rises'
-```
-
-### Custom Weights
-
-```python
-recommend('Interstellar', w_sim=0.5, w_vote=0.3, w_pop=0.2)
-```
-
-### Evaluation
-
-```python
-precision_at_k('Inception', k=5)
-ndcg_at_k('Inception', k=5)
-catalog_coverage(['Avatar', 'Inception', 'Interstellar'], k=5)
-```
-
----
-
-## Key Algorithms
-
-### TF-IDF (Term Frequency–Inverse Document Frequency)
-
-Weighs rare, distinctive words higher. Applied on stemmed tags (overview + genres + keywords + cast + director).
-
-### Cosine Similarity
-
-Dot product of L2-normalised TF-IDF vectors. Ranges from 0 (dissimilar) to 1 (identical).
-
-### Hybrid Scoring
-
-```
-score = sim × w_sim + vote_norm × w_vote + pop_norm × w_pop
-```
-
-Default weights: `w_sim=0.70, w_vote=0.20, w_pop=0.10`
-
-### Maximal Marginal Relevance (MMR)
-
-Re-ranks candidates by balancing relevance to the query against inter-result diversity:
-
-```
-MMR = λ · relevance − (1 − λ) · max_similarity_to_selected
-```
-
-### NDCG@K (Normalised Discounted Cumulative Gain)
-
-Penalises relevant items ranked lower in the list; genre overlap used as the relevance signal.
-
----
-
-## Project Structure
-
-```
-├── Explaination/
-│   ├── app.ipynb           # Main notebook (full pipeline)
-│   ├── movie_list.pkl      # Pickled movie DataFrame
-│   ├── similarity_sparse.npz  # Sparse top-50 neighbour matrix
-│   └── Data/
-│       ├── movies.csv
-│       ├── credits.csv
-│       └── poster.csv
-├── frontend/               # Next.js frontend (WIP)
-├── readme.md
-└── .gitignore
+```text
+movie-recommendation-system/
+├── backend/               # Django REST API & ML Engine
+├── frontend/              # Next.js UI Application
+├── explaination/          # Jupyter notebooks and TMDB datasets
+├── README.md              # Project Documentation
+└── .gitignore             # Ignored files
 ```
