@@ -30,6 +30,7 @@ class RecommendationEngine:
         self.vote_avg = None      # np array of normalised vote averages
         self.popularity = None    # np array of normalised popularity
         self.poster_map = {}      # movie_pk -> poster_url
+        self.vectorizer = None    # TF-IDF vectorizer for tags
         self.tfidf_matrix = None  # sparse TF-IDF matrix
         self._ready = False
 
@@ -61,8 +62,8 @@ class RecommendationEngine:
 
         # Build TF-IDF on the combined tags field
         tags = [m.tags if m.tags else '' for m in movies]
-        vectorizer = TfidfVectorizer(max_features=10000, stop_words='english')
-        tfidf = vectorizer.fit_transform(tags)
+        self.vectorizer = TfidfVectorizer(max_features=10000, stop_words='english')
+        tfidf = self.vectorizer.fit_transform(tags)
         self.tfidf_matrix = normalize(tfidf, norm='l2')
 
         self._ready = True
@@ -102,6 +103,50 @@ class RecommendationEngine:
             }
 
         return {"matched": None, "movie_id": None, "is_exact": False}
+
+    # ── Autocomplete / Suggestions ───────────────────────────────────
+    def suggest_titles(self, query: str, top_k: int = 5):
+        """
+        Returns an autocomplete list of suggestions based on TF-IDF semantic
+        matching (tags) + string fuzzy matching (titles).
+        """
+        if not self._ready or not self.vectorizer:
+            return []
+
+        q = query.strip().lower()
+        if not q:
+            return []
+
+        # 1. Semantic Match via TF-IDF Vectorizer
+        q_vec = self.vectorizer.transform([q])
+        if q_vec.nnz > 0:
+            sim_scores = (q_vec @ self.tfidf_matrix.T).toarray().flatten()
+        else:
+            sim_scores = np.zeros(len(self.movie_ids))
+
+        # 2. Fuzzy Match via Rapidfuzz
+        fuzzy_results = process.extract(q, self.titles, scorer=fuzz.WRatio, limit=top_k * 2)
+        
+        # Combine into a hybrid score map
+        # We heavily weight the fuzzy title match (0.7) and give a subtle boost to semantic match (0.3)
+        hybrid = sim_scores * 0.3
+        for matched_title, score, idx in fuzzy_results:
+            hybrid[idx] += (score / 100.0) * 0.7
+
+        # Top K
+        top_indices = np.argsort(hybrid)[::-1][:top_k]
+        
+        results = []
+        for idx in top_indices:
+            if hybrid[idx] > 0.05:  # Ensure there is at least some minimal match
+                pk = self.movie_ids[idx]
+                results.append({
+                    "movie_id": pk,
+                    "title": self.titles[idx],
+                    "score": round(float(hybrid[idx]), 4)
+                })
+
+        return results
 
     # ── Recommendations ──────────────────────────────────────────────
     def get_recommendations(

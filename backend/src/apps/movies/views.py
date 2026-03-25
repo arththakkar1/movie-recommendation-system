@@ -28,6 +28,23 @@ class SearchMovieView(APIView):
         return Response(serializer.data)
 
 
+class SuggestMovieView(APIView):
+    """
+    GET /api/movies/suggest/?q=<query>
+
+    Returns autocomplete suggestions for real-time frontend search bars.
+    """
+
+    def get(self, request):
+        query = request.query_params.get('q', '').strip()
+        if not query:
+            return Response([])
+
+        engine = get_engine()
+        results = engine.suggest_titles(query, top_k=5)
+        return Response(results)
+
+
 class RecommendationsView(APIView):
     """
     GET /api/movies/<movie_id>/recommendations/?w_sim=0.7&w_vote=0.2&w_pop=0.1&top_k=10

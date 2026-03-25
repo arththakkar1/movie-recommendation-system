@@ -8,7 +8,9 @@ import {
   getRecommendations,
   getSeedTitles,
   prefetchRecommendations,
+  getSuggestions,
   Movie,
+  Suggestion,
 } from "./data/api";
 
 const PLACEHOLDER_TITLES = [
@@ -32,6 +34,9 @@ export default function Home() {
   const [wPop, setWPop] = useState(0.1);
   const [placeholder, setPlaceholder] = useState(PLACEHOLDER_TITLES[0]);
   const [seedTitles, setSeedTitles] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Load seed titles from backend on mount
@@ -140,12 +145,30 @@ export default function Home() {
 
       {/* ── Search bar ── */}
       <section className="flex flex-col items-center px-4 gap-3">
-        <div className="relative w-full max-w-xl">
+        <div className="relative w-full max-w-xl group z-50">
           <input
             ref={inputRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setQuery(val);
+              if (!val.trim()) {
+                setSuggestions([]);
+                setShowSuggestions(false);
+                return;
+              }
+              if (suggestionTimeout.current) clearTimeout(suggestionTimeout.current);
+              suggestionTimeout.current = setTimeout(async () => {
+                const sugs = await getSuggestions(val);
+                setSuggestions(sugs);
+                setShowSuggestions(true);
+              }, 200);
+            }}
             onKeyDown={(e) => e.key === "Enter" && search()}
+            onFocus={() => {
+              if (suggestions.length > 0) setShowSuggestions(true);
+            }}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             placeholder={`Try "${placeholder}"…`}
             className="w-full rounded-2xl bg-white/5 border border-white/15 focus:border-emerald-500/70 outline-none px-5 py-3.5 pr-14 text-sm text-white placeholder:text-white/25 transition-all"
           />
@@ -156,6 +179,27 @@ export default function Home() {
           >
             {loading ? "…" : "Search"}
           </button>
+          
+          {/* Autocomplete Dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="absolute top-full mt-2 w-full bg-[#15151e] border border-white/10 rounded-xl overflow-hidden shadow-2xl divide-y divide-white/5">
+              {suggestions.map((s) => (
+                <li key={s.movie_id}>
+                  <button
+                    onClick={() => {
+                      setQuery(s.title);
+                      setShowSuggestions(false);
+                      search(s.title);
+                    }}
+                    className="w-full text-left px-5 py-3 text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between"
+                  >
+                    <span>{s.title}</span>
+                    <span className="text-[10px] font-mono text-emerald-400/50">{(s.score * 100).toFixed(0)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Seed chips */}

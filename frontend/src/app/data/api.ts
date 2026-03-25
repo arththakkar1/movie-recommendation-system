@@ -18,6 +18,12 @@ export interface SearchResult {
   is_exact: boolean;
 }
 
+export interface Suggestion {
+  movie_id: number;
+  title: string;
+  score: number;
+}
+
 interface RecommendationItem {
   movie_id: number;
   title: string;
@@ -28,6 +34,7 @@ interface RecommendationItem {
 
 // Caches mapping a query or movieId+weights to a Promise of the result
 const resolveCache = new Map<string, Promise<SearchResult>>();
+const suggestCache = new Map<string, Promise<Suggestion[]>>();
 const recsCache = new Map<string, Promise<Movie[]>>();
 let seedTitlesCache: Promise<string[]> | null = null;
 
@@ -54,6 +61,32 @@ export function resolveTitle(query: string): Promise<SearchResult> {
     });
 
   resolveCache.set(trimmed, promise);
+  return promise;
+}
+
+/**
+ * Autocomplete suggestions using TF-IDF and Fuzzy matching.
+ * GET /api/movies/suggest/?q=<query>
+ */
+export function getSuggestions(query: string): Promise<Suggestion[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return Promise.resolve([]);
+
+  if (suggestCache.has(trimmed)) {
+    return suggestCache.get(trimmed)!;
+  }
+
+  const promise = fetch(`${API_BASE}/suggest/?q=${encodeURIComponent(trimmed)}`)
+    .then((res) => {
+      if (!res.ok) return [];
+      return res.json();
+    })
+    .catch(() => {
+      suggestCache.delete(trimmed);
+      return [];
+    });
+
+  suggestCache.set(trimmed, promise);
   return promise;
 }
 
