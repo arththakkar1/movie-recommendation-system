@@ -175,7 +175,7 @@ export default function Home() {
           <button
             onClick={() => search()}
             disabled={loading}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900 text-white rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors"
+            className="absolute cursor-pointer right-2.5 top-1/2 -translate-y-1/2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900 text-white rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors"
           >
             {loading ? "…" : "Search"}
           </button>
@@ -212,7 +212,7 @@ export default function Home() {
                 search(t);
               }}
               onMouseEnter={() => prefetchRecommendations(t, wSim, wVote, wPop)}
-              className="text-xs px-3 py-1 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+              className="text-xs cursor-pointer px-3 py-1 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
             >
               {t}
             </button>
